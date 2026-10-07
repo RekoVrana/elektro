@@ -58,7 +58,7 @@
     ukaz('gateLogin', false); ukaz('gateJobs', false);
     document.title = 'Elektro · ' + (project.title || job.title || job.jobId);
 
-    for (const src of ['lib/pdf-lib.min.js', 'lib/fontkit.umd.min.js', 'app.core.js?v=2']) {
+    for (const src of ['lib/pdf-lib.min.js', 'lib/fontkit.umd.min.js', 'app.core.js?v=3']) {
       await new Promise((hotovo, selhalo) => {
         const s = document.createElement('script');
         s.src = src; s.onload = hotovo; s.onerror = () => selhalo(new Error('nenačetlo se ' + src));
@@ -90,10 +90,52 @@
         };
         box.appendChild(b);
       }
+      if (me.zakazky.includes('*')) ukazPristupy(vse).catch(e => chyba('pristupyErr', String(e.message || e)));
       const chce = new URLSearchParams(location.search).get('z');
       const rovnou = chce && moje.find(z => z.jobId === chce);
       if (rovnou) spustEditor(rovnou, me).catch(e => chyba('jobsErr', String(e.message || e)));
     } catch (e) { box.innerHTML = ''; chyba('jobsErr', String(e.message || e)); }
+  }
+
+  /* ---------- správa přístupů (jen kdo má elektro: ["*"]) ---------- */
+  async function ukazPristupy(zakazky) {
+    ukaz('pristupy', true); chyba('pristupyErr', '');
+    const roster = (await db.collection('roster').get()).docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.role !== 'admin')
+      .sort((a, b) => (a.prijmeni || '').localeCompare(b.prijmeni || '', 'cs'));
+    const jmeno = r => [r.jmeno, r.prijmeni].filter(Boolean).join(' ') || r.name || r.id;
+    // účty k lidem: users_auth.userDocId odkazuje na záznam osoby
+    const ucty = {};
+    for (let i = 0; i < roster.length; i += 30) {
+      const q = await db.collection('users_auth').where('userDocId', 'in', roster.slice(i, i + 30).map(r => r.id)).get();
+      q.docs.forEach(d => { ucty[d.data().userDocId] = { ref: d.ref, elektro: Array.isArray(d.data().elektro) ? d.data().elektro : [] }; });
+    }
+    const m = el('matice'); m.innerHTML = ''; m.style.gridTemplateColumns = 'minmax(120px,1fr) repeat(' + zakazky.length + ', 28px)';
+    m.appendChild(document.createElement('div'));
+    for (const z of zakazky) { const h = document.createElement('div'); h.className = 'hl'; h.textContent = z.title || z.jobId; h.title = z.jobId; m.appendChild(h); }
+    for (const r of roster) {
+      const n = document.createElement('div'); n.className = 'jm'; n.textContent = jmeno(r); m.appendChild(n);
+      const u = ucty[r.id];
+      for (const z of zakazky) {
+        const cell = document.createElement('div');
+        if (!u) { cell.className = 'bez'; cell.textContent = '–'; cell.title = 'nemá účet v Deníku'; }
+        else {
+          const c = document.createElement('input'); c.type = 'checkbox'; c.checked = u.elektro.includes(z.jobId) || u.elektro.includes('*');
+          c.disabled = u.elektro.includes('*'); c.title = jmeno(r) + ' → ' + (z.title || z.jobId);
+          c.onchange = async () => {
+            c.disabled = true; chyba('pristupyErr', '');
+            try {
+              const FV = firebase.firestore.FieldValue;
+              await u.ref.update({ elektro: c.checked ? FV.arrayUnion(z.jobId) : FV.arrayRemove(z.jobId) });
+              u.elektro = c.checked ? [...new Set([...u.elektro, z.jobId])] : u.elektro.filter(x => x !== z.jobId);
+            } catch (e) { c.checked = !c.checked; chyba('pristupyErr', 'Zápis se nepodařil: ' + ((e && e.code) || e)); }
+            finally { c.disabled = false; }
+          };
+          cell.appendChild(c);
+        }
+        m.appendChild(cell);
+      }
+    }
+    if (!roster.length) m.innerHTML = '<div class="unit">V Deníku nejsou žádní lidé.</div>';
   }
 
   /* ---------- přihlášení: stejně jako Deník ---------- */

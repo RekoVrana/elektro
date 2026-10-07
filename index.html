@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Elektro editor · Rekonstrukce Vrána</title>
-<link rel="stylesheet" href="app.css?v=2">
+<link rel="stylesheet" href="app.css?v=3">
 <style>
 .gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:50;padding:16px}
 .gate .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;width:min(420px,96vw)}
@@ -24,6 +24,12 @@
 .vybrany{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .lnk{background:none;border:none;padding:0;color:var(--sel);cursor:pointer;font-size:12px;text-decoration:underline}
 .gate .ok{margin-top:12px;color:#fff;background:var(--ok);border-radius:6px;padding:8px 10px;font-size:12px}
+.matice{display:grid;gap:4px 10px;align-items:center;font-size:12px;max-height:40vh;overflow:auto;padding-right:4px}
+.matice .hl{color:var(--ink2);font-size:11px;writing-mode:vertical-rl;transform:rotate(180deg);line-height:1.1;max-height:90px;overflow:hidden}
+.matice .jm{white-space:nowrap}
+.matice input{width:16px;height:16px;margin:0}
+.matice .bez{color:var(--ink3);font-size:11px}
+.gate .box{width:min(560px,96vw)}
 .jobs{display:flex;flex-direction:column;gap:8px;margin-top:12px;max-height:50vh;overflow:auto}
 .jobs button{display:block;width:100%;text-align:left;padding:10px 12px}
 .jobs button b{display:block;font-size:13px}
@@ -70,6 +76,12 @@
   <p class="sub" id="jobsWho"></p>
   <div class="jobs" id="jobsList"></div>
   <div class="err" id="jobsErr" hidden></div>
+  <div id="pristupy" hidden>
+    <h1 style="margin-top:18px">Kdo má přístup</h1>
+    <p class="sub">Zaškrtnutí platí hned. Lidé bez zaškrtnuté zakázky se do Elektra nedostanou.</p>
+    <div class="matice" id="matice"></div>
+    <div class="err" id="pristupyErr" hidden></div>
+  </div>
   <div class="foot"><button id="logoutBtn">Odhlásit</button></div>
 </div></div>
 
@@ -78,7 +90,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="config.js?v=2"></script>
-<script src="boot.js?v=2"></script>
+<script src="config.js?v=3"></script>
+<script src="boot.js?v=3"></script>
 </body>
 </html>
