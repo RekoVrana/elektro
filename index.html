@@ -15,6 +15,15 @@
 .gate button.primary{width:100%;margin-top:16px;padding:9px}
 .gate .err{margin-top:12px;color:#fff;background:var(--acc);border-radius:6px;padding:8px 10px;font-size:12px}
 .gate .foot{margin-top:14px;font-size:11px;color:var(--ink3);line-height:1.5}
+.modes{display:flex;gap:6px;margin-bottom:12px}
+.modes button{flex:1;padding:7px}
+.modes button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.lidi{display:flex;flex-direction:column;gap:4px;max-height:40vh;overflow:auto;margin-top:6px}
+.lidi button{text-align:left;padding:8px 10px}
+.lidi .unit{padding:6px 2px}
+.vybrany{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.lnk{background:none;border:none;padding:0;color:var(--sel);cursor:pointer;font-size:12px;text-decoration:underline}
+.gate .ok{margin-top:12px;color:#fff;background:var(--ok);border-radius:6px;padding:8px 10px;font-size:12px}
 .jobs{display:flex;flex-direction:column;gap:8px;margin-top:12px;max-height:50vh;overflow:auto}
 .jobs button{display:block;width:100%;text-align:left;padding:10px 12px}
 .jobs button b{display:block;font-size:13px}
@@ -26,15 +35,34 @@
 <div class="gate" id="gateLogin" hidden><div class="box">
   <h1>Elektro editor</h1>
   <p class="sub">Rekonstrukce Vrána — zákres koncových prvků</p>
-  <form id="loginForm">
+  <div class="modes"><button type="button" id="modeTeren" class="on">👷 Pracovníci</button><button type="button" id="modeKanc">🗂 Vedení / kancelář</button></div>
+
+  <div id="loginTeren">
+    <div id="terenVyber">
+      <label for="hledat">Kdo jsi?</label>
+      <input id="hledat" type="search" placeholder="začni psát jméno…" autocomplete="off">
+      <div class="lidi" id="lidi"></div>
+    </div>
+    <form id="pinForm" hidden>
+      <div class="vybrany"><b id="vybranyJmeno"></b><button type="button" id="zmenit" class="lnk">změnit</button></div>
+      <label for="pin">PIN</label>
+      <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="6 číslic" required>
+      <button type="submit" class="primary" id="pinBtn">Přihlásit</button>
+    </form>
+  </div>
+
+  <form id="loginForm" hidden>
     <label for="mail">E-mail</label>
     <input id="mail" type="email" autocomplete="username" required>
     <label for="pass">Heslo</label>
     <input id="pass" type="password" autocomplete="current-password" required>
     <button type="submit" class="primary" id="loginBtn">Přihlásit</button>
+    <div class="foot"><button type="button" id="zapomenute" class="lnk">Zapomenuté heslo</button></div>
   </form>
+
   <div class="err" id="loginErr" hidden></div>
-  <div class="foot">Přihlašuješ se stejným účtem jako do Deníku staveb.<br>Heslo zapomenuté nebo účet nemáš? Napiš na info@rekovrana.cz.</div>
+  <div class="ok" id="loginOk" hidden></div>
+  <div class="foot">Stejné přihlášení jako do Deníku staveb. Nemáš přístup? Napiš na info@rekovrana.cz.</div>
 </div></div>
 
 <div class="gate" id="gateJobs" hidden><div class="box">

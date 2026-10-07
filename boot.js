@@ -94,19 +94,64 @@
     } catch (e) { box.innerHTML = ''; chyba('jobsErr', String(e.message || e)); }
   }
 
-  /* ---------- přihlášení ---------- */
+  /* ---------- přihlášení: stejně jako Deník ---------- */
+  const chybaText = e => {
+    const kod = (e && e.code) || '';
+    if (/invalid-credential|wrong-password|user-not-found|invalid-login/.test(kod)) return 'Nesedí heslo/PIN — nebo účet ještě není dokončený. Ať ti vedení zkusí PIN nastavit znovu.';
+    if (kod === 'auth/too-many-requests') return 'Moc pokusů po sobě. Zkus to za pár minut.';
+    if (/referer/.test(kod)) return 'Přihlášení z této adresy není povoleno (omezení klíče Firebase na weby).';
+    return 'Přihlášení se nepodařilo: ' + (kod || e);
+  };
+  const rezim = m => { el('modeTeren').classList.toggle('on', m === 'teren'); el('modeKanc').classList.toggle('on', m === 'kanc');
+    ukaz('loginTeren', m === 'teren'); ukaz('loginForm', m === 'kanc'); chyba('loginErr', ''); chyba('loginOk', '');
+    try { localStorage.setItem('elektro:loginMode', m); } catch {} };
+  el('modeTeren').onclick = () => rezim('teren'); el('modeKanc').onclick = () => rezim('kanc');
+
+  // seznam lidí z veřejného rosteru Deníku (bez vedení), zapamatovaná volba
+  let roster = [], vybrany = null;
+  const celeJmeno = r => [r.jmeno, r.prijmeni].filter(Boolean).join(' ') || r.name || r.id;
+  async function nactiRoster() {
+    try { const s = await db.collection('roster').get();
+      roster = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.role !== 'admin').sort((x, y) => (x.prijmeni || '').localeCompare(y.prijmeni || '', 'cs')); }
+    catch (e) { chyba('loginErr', 'Seznam lidí se nepodařilo načíst: ' + ((e && e.code) || e)); }
+    vykresliLidi();
+  }
+  function vykresliLidi() {
+    const q = el('hledat').value.trim().toLowerCase(); const box = el('lidi'); box.innerHTML = '';
+    let posledni = null; try { posledni = localStorage.getItem('elektro:posledniClovek'); } catch {}
+    const seznam = roster.filter(r => !q ? r.id === posledni : celeJmeno(r).toLowerCase().includes(q)).slice(0, 12);
+    if (!seznam.length) { box.innerHTML = '<div class="unit">' + (q ? 'Nikdo takový tu není.' : 'Začni psát své jméno.') + '</div>'; return; }
+    for (const r of seznam) { const b = document.createElement('button'); b.type = 'button'; b.textContent = celeJmeno(r);
+      b.onclick = () => { vybrany = r; el('vybranyJmeno').textContent = celeJmeno(r); ukaz('terenVyber', false); ukaz('pinForm', true); el('pin').focus(); };
+      box.appendChild(b); }
+  }
+  el('hledat').oninput = vykresliLidi;
+  el('zmenit').onclick = () => { vybrany = null; ukaz('pinForm', false); ukaz('terenVyber', true); el('pin').value = ''; };
+  el('pinForm').onsubmit = async ev => {
+    ev.preventDefault(); chyba('loginErr', ''); const pin = el('pin').value.trim();
+    if (!vybrany) return; if (pin.length < 6) { chyba('loginErr', 'PIN má aspoň 6 znaků.'); return; }
+    if (!vybrany.authEmail) { chyba('loginErr', 'Účet nemá přihlašovací adresu — ať ti vedení vytvoří přihlášení znovu.'); return; }
+    const b = el('pinBtn'); b.disabled = true; b.textContent = 'Přihlašuji…';
+    try { await auth.signInWithEmailAndPassword(vybrany.authEmail, pin); try { localStorage.setItem('elektro:posledniClovek', vybrany.id); } catch {} }
+    catch (e) { chyba('loginErr', chybaText(e)); }
+    finally { b.disabled = false; b.textContent = 'Přihlásit'; el('pin').value = ''; }
+  };
   el('loginForm').onsubmit = async ev => {
-    ev.preventDefault(); chyba('loginErr', '');
+    ev.preventDefault(); chyba('loginErr', ''); chyba('loginOk', '');
     const b = el('loginBtn'); b.disabled = true; b.textContent = 'Přihlašuji…';
     try { await auth.signInWithEmailAndPassword(el('mail').value.trim(), el('pass').value); }
-    catch (e) {
-      const kod = (e && e.code) || '';
-      chyba('loginErr', kod === 'auth/invalid-credential' || kod === 'auth/wrong-password' || kod === 'auth/user-not-found'
-        ? 'Nesprávný e-mail nebo heslo.' : kod === 'auth/too-many-requests'
-        ? 'Příliš mnoho pokusů. Zkus to za chvíli.' : /referer/.test(kod)
-        ? 'Přihlášení z této adresy není povoleno — klíč Firebase má omezení na weby (Google Cloud → Credentials → Website restrictions musí obsahovat i rekovrana.github.io/elektro).' : 'Přihlášení se nepodařilo: ' + (kod || e));
-    } finally { b.disabled = false; b.textContent = 'Přihlásit'; el('pass').value = ''; }
+    catch (e) { chyba('loginErr', chybaText(e)); }
+    finally { b.disabled = false; b.textContent = 'Přihlásit'; el('pass').value = ''; }
   };
+  el('zapomenute').onclick = async () => {
+    const m = el('mail').value.trim(); chyba('loginErr', ''); chyba('loginOk', '');
+    if (!m) { chyba('loginErr', 'Napiš nahoru svůj e-mail a pak klikni na Zapomenuté heslo.'); return; }
+    try { await auth.sendPasswordResetEmail(m); chyba('loginOk', 'Poslal jsem odkaz na nastavení nového hesla na ' + m + '.'); }
+    catch (e) { chyba('loginErr', chybaText(e)); }
+  };
+  let ulozenyRezim = 'teren'; try { ulozenyRezim = localStorage.getItem('elektro:loginMode') || 'teren'; } catch {}
+  rezim(ulozenyRezim); nactiRoster();
+
   el('logoutBtn').onclick = () => auth.signOut().then(() => location.reload());
 
   if (dev) {   // místní zkoušení bez přihlášení; ukládá se jen v prohlížeči
