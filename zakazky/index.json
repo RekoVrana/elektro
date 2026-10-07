@@ -1,0 +1,20 @@
+{
+ "zakazky": [
+  {
+   "jobId": "liedermannova",
+   "title": "Liedermannová, Nad Kajetánkou 12",
+   "address": "Nad Kajetánkou 12, 169 00, Hlavní město Praha, CZ",
+   "geomFp": "23dfc3fe93d7a49b",
+   "rooms": 5,
+   "walls": 32
+  },
+  {
+   "jobId": "belcicka",
+   "title": "Slánský, Bělčická 12",
+   "address": "Bělčická 12, 141 00, Hlavní město Praha, CZ",
+   "geomFp": "25b7503ff519569f",
+   "rooms": 8,
+   "walls": 37
+  }
+ ]
+}
