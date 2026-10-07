@@ -58,7 +58,7 @@
     ukaz('gateLogin', false); ukaz('gateJobs', false);
     document.title = 'Elektro · ' + (project.title || job.title || job.jobId);
 
-    for (const src of ['lib/pdf-lib.min.js', 'lib/fontkit.umd.min.js', 'app.core.js?v=4']) {
+    for (const src of ['lib/pdf-lib.min.js', 'lib/fontkit.umd.min.js', 'app.core.js?v=5']) {
       await new Promise((hotovo, selhalo) => {
         const s = document.createElement('script');
         s.src = src; s.onload = hotovo; s.onerror = () => selhalo(new Error('nenačetlo se ' + src));
@@ -90,7 +90,7 @@
         };
         box.appendChild(b);
       }
-      if (me.zakazky.includes('*')) ukazPristupy(vse).catch(e => chyba('pristupyErr', String(e.message || e)));
+      if (me.zakazky.includes('*')) ukazPristupy(vse, me).catch(e => chyba('pristupyErr', String(e.message || e)));
       const chce = new URLSearchParams(location.search).get('z');
       const rovnou = chce && moje.find(z => z.jobId === chce);
       if (rovnou) spustEditor(rovnou, me).catch(e => chyba('jobsErr', String(e.message || e)));
@@ -98,53 +98,69 @@
   }
 
   /* ---------- správa přístupů (jen kdo má elektro: ["*"]) ---------- */
-  async function ukazPristupy(zakazky) {
+  async function ukazPristupy(zakazky, me) {
     ukaz('pristupy', true); chyba('pristupyErr', '');
-    const roster = (await db.collection('roster').get()).docs.map(d => ({ id: d.id, ...d.data() })).filter(r => r.role !== 'admin')
-      .sort((a, b) => (a.prijmeni || '').localeCompare(b.prijmeni || '', 'cs'));
-    const jmeno = r => [r.jmeno, r.prijmeni].filter(Boolean).join(' ') || r.name || r.id;
-    // účty k lidem: users_auth.userDocId odkazuje na záznam osoby
-    const ucty = {};
-    for (let i = 0; i < roster.length; i += 30) {
-      const q = await db.collection('users_auth').where('userDocId', 'in', roster.slice(i, i + 30).map(r => r.id)).get();
-      q.docs.forEach(d => { ucty[d.data().userDocId] = { ref: d.ref, elektro: Array.isArray(d.data().elektro) ? d.data().elektro : [] }; });
-    }
-    const m = el('matice'); m.innerHTML = '';
+    // vypisují se jen lidé, kteří mají pole elektro (= mají přístup); ostatní účty z Deníku jsou v nabídce „přidat člověka"
+    const roleText = { admin: 'vedení', worker: 'parta', sub: 'subdodavatel' };
+    const lide = (await db.collection('users_auth').get()).docs.filter(d => d.id !== me.uid)
+      .map(d => ({ ref: d.ref, jmeno: d.data().name || d.data().email || d.id, role: d.data().role || 'sub',
+                   ma: Array.isArray(d.data().elektro), elektro: Array.isArray(d.data().elektro) ? d.data().elektro : [] }))
+      .sort((a, b) => a.jmeno.localeCompare(b.jmeno, 'cs'));
+    const m = el('matice');
     const nazev = id => (zakazky.find(z => z.jobId === id) || {}).title || id;
     const FV = firebase.firestore.FieldValue;
+    const span = (cls, text) => { const x = document.createElement('span'); x.className = cls; x.textContent = text; return x; };
+    const krizek = (title, fn) => { const x = document.createElement('button'); x.type = 'button'; x.textContent = '✕'; x.title = title; x.onclick = fn; return x; };
+    const nabidka = (prvni, polozky, fn) => {
+      const sel = document.createElement('select');
+      sel.innerHTML = '<option value="">' + prvni + '</option>' + polozky.map(([v, t]) => `<option value="${v}">${String(t).replace(/</g, '&lt;')}</option>`).join('');
+      sel.onchange = () => { if (sel.value) fn(sel.value); };
+      return sel;
+    };
     const vykresli = () => {
       m.innerHTML = '';
-      for (const r of roster) {
-        const u = ucty[r.id]; const radek = document.createElement('div'); radek.className = 'radek';
-        const b = document.createElement('b'); b.textContent = jmeno(r); radek.appendChild(b);
-        if (!u) { const x = document.createElement('span'); x.className = 'bez'; x.textContent = 'nemá účet v Deníku'; radek.appendChild(x); m.appendChild(radek); continue; }
-        if (u.elektro.includes('*')) { const x = document.createElement('span'); x.className = 'stitek'; x.textContent = 'všechny zakázky (správce)'; radek.appendChild(x); m.appendChild(radek); continue; }
-        if (!u.elektro.length) { const x = document.createElement('span'); x.className = 'bez'; x.textContent = 'bez přístupu'; radek.appendChild(x); }
+      const sPristupem = lide.filter(u => u.ma);
+      if (!sPristupem.length) m.appendChild(span('bez', 'Zatím nikdo jiný přístup nemá.'));
+      for (const u of sPristupem) {
+        const radek = document.createElement('div'); radek.className = 'radek';
+        const b = document.createElement('b'); b.textContent = u.jmeno; radek.appendChild(b);
+        radek.appendChild(span('role', roleText[u.role] || u.role));
+        if (u.elektro.includes('*')) {
+          const st = span('stitek', 'všechny zakázky '); st.appendChild(krizek('odebrat přístup', () => zmen(u, '*', false))); radek.appendChild(st);
+          m.appendChild(radek); continue;
+        }
+        if (!u.elektro.length) radek.appendChild(span('bez', 'bez zakázky'));
         for (const id of u.elektro) {
-          const st = document.createElement('span'); st.className = 'stitek'; st.textContent = nazev(id) + ' ';
-          const x = document.createElement('button'); x.type = 'button'; x.textContent = '✕'; x.title = 'odebrat přístup';
-          x.onclick = () => zmen(u, id, false); st.appendChild(x); radek.appendChild(st);
+          const st = span('stitek', nazev(id) + ' '); st.appendChild(krizek('odebrat přístup', () => zmen(u, id, false))); radek.appendChild(st);
         }
-        const zbyva = zakazky.filter(z => !u.elektro.includes(z.jobId));
-        if (zbyva.length) {
-          const sel = document.createElement('select');
-          sel.innerHTML = '<option value="">＋ přidat zakázku…</option>' + zbyva.map(z => `<option value="${z.jobId}">${(z.title || z.jobId).replace(/</g, '&lt;')}</option>`).join('');
-          sel.onchange = () => { if (sel.value) zmen(u, sel.value, true); };
-          radek.appendChild(sel);
-        }
+        const zbyva = zakazky.filter(z => !u.elektro.includes(z.jobId)).map(z => [z.jobId, z.title || z.jobId]);
+        if (u.role === 'admin') zbyva.unshift(['*', 'všechny zakázky']);
+        if (zbyva.length) radek.appendChild(nabidka('＋ přidat zakázku…', zbyva, id => zmen(u, id, true)));
         m.appendChild(radek);
       }
+      // kdo přístup nemá, jde přidat (dostane prázdný seznam a pak se mu vybere zakázka)
+      const bez = lide.filter(u => !u.ma).map((u, i) => [String(lide.indexOf(u)), u.jmeno + ' (' + (roleText[u.role] || u.role) + ')']);
+      if (bez.length) {
+        const pata = document.createElement('div'); pata.className = 'pridat';
+        pata.appendChild(nabidka('＋ přidat člověka…', bez, i => pridejCloveka(lide[+i])));
+        m.appendChild(pata);
+      }
     };
-    const zmen = async (u, id, pridat) => {
+    const uloz = async (u, data, pak) => {
       chyba('pristupyErr', '');
-      try {
-        await u.ref.update({ elektro: pridat ? FV.arrayUnion(id) : FV.arrayRemove(id) });
-        u.elektro = pridat ? [...new Set([...u.elektro, id])] : u.elektro.filter(x => x !== id);
-      } catch (e) { chyba('pristupyErr', 'Zápis se nepodařil: ' + ((e && e.code) || e)); }
+      try { await u.ref.update(data); pak(); }
+      catch (e) { chyba('pristupyErr', 'Zápis se nepodařil: ' + ((e && e.code) || e)); }
       vykresli();
     };
+    const zmen = (u, id, pridat) => {
+      if (pridat && id === '*') return uloz(u, { elektro: ['*'] }, () => { u.elektro = ['*']; u.ma = true; });
+      const nove = pridat ? [...new Set([...u.elektro, id])] : u.elektro.filter(x => x !== id);
+      // bez poslední zakázky člověk ze seznamu zmizí (pole se smaže), ať tu nestraší prázdné řádky
+      if (!nove.length) return uloz(u, { elektro: FV.delete() }, () => { u.elektro = []; u.ma = false; });
+      return uloz(u, { elektro: pridat ? FV.arrayUnion(id) : FV.arrayRemove(id) }, () => { u.elektro = nove; });
+    };
+    const pridejCloveka = u => uloz(u, { elektro: [] }, () => { u.elektro = []; u.ma = true; });
     vykresli();
-    if (!roster.length) m.innerHTML = '<div class="unit">V Deníku nejsou žádní lidé.</div>';
   }
 
   /* ---------- přihlášení: stejně jako Deník ---------- */
