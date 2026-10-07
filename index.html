@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Elektro editor · Rekonstrukce Vrána</title>
-<link rel="stylesheet" href="app.css?v=3">
+<link rel="stylesheet" href="app.css?v=4">
 <style>
 .gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:50;padding:16px}
 .gate .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;width:min(420px,96vw)}
@@ -24,11 +24,14 @@
 .vybrany{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .lnk{background:none;border:none;padding:0;color:var(--sel);cursor:pointer;font-size:12px;text-decoration:underline}
 .gate .ok{margin-top:12px;color:#fff;background:var(--ok);border-radius:6px;padding:8px 10px;font-size:12px}
-.matice{display:grid;gap:4px 10px;align-items:center;font-size:12px;max-height:40vh;overflow:auto;padding-right:4px}
-.matice .hl{color:var(--ink2);font-size:11px;writing-mode:vertical-rl;transform:rotate(180deg);line-height:1.1;max-height:90px;overflow:hidden}
-.matice .jm{white-space:nowrap}
-.matice input{width:16px;height:16px;margin:0}
-.matice .bez{color:var(--ink3);font-size:11px}
+.lide{display:flex;flex-direction:column;gap:6px;max-height:46vh;overflow:auto;padding-right:4px}
+.lide .radek{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel2)}
+.lide .radek b{min-width:150px;font-size:13px}
+.lide .stitek{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;background:var(--sel-soft);color:var(--sel);font-size:12px}
+.lide .stitek button{all:unset;cursor:pointer;font-weight:700;line-height:1}
+.lide .stitek button:hover{color:var(--acc)}
+.lide select{margin-left:auto;font-size:12px;padding:3px 6px;max-width:220px}
+.lide .bez{color:var(--ink3);font-size:12px}
 .gate .box{width:min(560px,96vw)}
 .jobs{display:flex;flex-direction:column;gap:8px;margin-top:12px;max-height:50vh;overflow:auto}
 .jobs button{display:block;width:100%;text-align:left;padding:10px 12px}
@@ -78,8 +81,8 @@
   <div class="err" id="jobsErr" hidden></div>
   <div id="pristupy" hidden>
     <h1 style="margin-top:18px">Kdo má přístup</h1>
-    <p class="sub">Zaškrtnutí platí hned. Lidé bez zaškrtnuté zakázky se do Elektra nedostanou.</p>
-    <div class="matice" id="matice"></div>
+    <p class="sub">Změna platí hned. Kdo nemá žádnou zakázku, do Elektra se nedostane.</p>
+    <div class="lide" id="matice"></div>
     <div class="err" id="pristupyErr" hidden></div>
   </div>
   <div class="foot"><button id="logoutBtn">Odhlásit</button></div>
@@ -90,7 +93,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="config.js?v=3"></script>
-<script src="boot.js?v=3"></script>
+<script src="config.js?v=4"></script>
+<script src="boot.js?v=4"></script>
 </body>
 </html>
