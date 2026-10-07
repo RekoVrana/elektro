@@ -1390,7 +1390,7 @@ const sharedRef = () => db.doc('elektro_zakazky/' + (JOB_ID || PROJECT_SLUG) + '
 function scheduleSharedSave() { clearTimeout(sharedT); sharedT = setTimeout(sharedSave, 700); }
 async function sharedSave() {
   if (!db) return;
-  try { saving = true; await sharedRef().set({ format: FORMAT, schemaVersion: SCHEMA_VERSION, project: { jobId: JOB_ID, geomFp: GEOM_FP }, elements: state.elements, settings: state.settings, meta: state.meta, updatedAt: state.meta.updatedAt || new Date().toISOString(), client: CLIENT }); lastSaved = state.meta.rev; sharedState = 'ok'; }
+  try { saving = true; await sharedRef().set(JSON.parse(JSON.stringify({ format: FORMAT, schemaVersion: SCHEMA_VERSION, project: { jobId: JOB_ID, geomFp: GEOM_FP }, elements: state.elements, settings: state.settings, meta: state.meta, updatedAt: state.meta.updatedAt || new Date().toISOString(), client: CLIENT }))); lastSaved = state.meta.rev; sharedState = 'ok'; hideBanner('shared'); }   // JSON round-trip: Firestore odmítá undefined (invalid-argument)
   catch (e) { sharedState = 'err'; showBanner('Sdílené úložiště: uložení selhalo (' + esc((e && (e.code || e.message)) || e) + '). Lokální kopie v prohlížeči ' + (storageOk ? 'je uložená' : 'NENÍ uložená') + ' – stáhni projekt.', '', [['Uložit projekt', saveProject]], 'shared'); }
   finally { saving = false; updateStatus(); }
 }
@@ -1400,7 +1400,7 @@ function loadLocalState() {
   let j; try { j = JSON.parse(raw); } catch { return { loaded: false, reason: 'uložený stav nejde přečíst (poškozený JSON)' }; }
   const res = validateProjectFile(j);   // stored as written by persistNow (format, schemaVersion, project identity) – validated unchanged
   if (!res.ok) return { loaded: false, reason: res.errors[0].msg, raw };
-  state.elements = res.value.elements; state.settings = res.value.settings; state.meta = { ...freshMeta(), ...res.value.meta, importedFrom: j.meta && j.meta.importedFrom ? j.meta.importedFrom : undefined };
+  state.elements = res.value.elements; state.settings = res.value.settings; state.meta = { ...freshMeta(), ...res.value.meta, ...(j.meta && j.meta.importedFrom ? { importedFrom: j.meta.importedFrom } : {}) };
   if (!state.meta.revHash) state.meta.revHash = contentHash();
   return { loaded: true };
 }
