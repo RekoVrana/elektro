@@ -58,7 +58,7 @@
     ukaz('gateLogin', false); ukaz('gateJobs', false);
     document.title = 'Elektro · ' + (project.title || job.title || job.jobId);
 
-    for (const src of ['lib/pdf-lib.min.js', 'lib/fontkit.umd.min.js', 'app.core.js?v=1']) {
+    for (const src of ['lib/pdf-lib.min.js', 'lib/fontkit.umd.min.js', 'app.core.js?v=2']) {
       await new Promise((hotovo, selhalo) => {
         const s = document.createElement('script');
         s.src = src; s.onload = hotovo; s.onerror = () => selhalo(new Error('nenačetlo se ' + src));
