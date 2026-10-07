@@ -10,8 +10,10 @@
   const chyba = (id, text) => { const n = el(id); if (!n) return; n.textContent = text || ''; n.hidden = !text; };
   const dev = location.hostname === 'localhost' && new URLSearchParams(location.search).get('dev') === '1';
 
-  firebase.initializeApp(CFG.firebase);
-  const auth = firebase.auth(), db = firebase.firestore();
+  // Vlastní pojmenovaná instance: Elektro a Deník sdílejí adresu rekovrana.github.io, a bez toho
+  // by měly i společné přihlášení — odhlášení z Elektra by odhlásilo Deník na stejném zařízení.
+  const app = firebase.initializeApp(CFG.firebase, 'elektro');
+  const auth = firebase.auth(app), db = firebase.firestore(app);
   window.VRANA_DB = db;
 
   /* ---------- seznam zakázek: statický rejstřík vedle aplikace ---------- */
