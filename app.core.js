@@ -659,6 +659,33 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const parseNum = s => { if (typeof s === 'number') return s; const t = String(s ?? '').trim().replace(',', '.').replace(/\s+/g, ''); if (!t) return NaN; const v = Number(t); return Number.isFinite(v) ? v : NaN; };
 const defH = sid => { const v = +(state.settings.heights || {})[sid]; return Number.isFinite(v) && v >= 0 ? v : SYM[sid].h; };
 function snapshot() { undoStack.push(JSON.stringify(state.elements)); if (undoStack.length > 80) undoStack.shift(); redoStack = []; }
+/* ---------- sloučení sousedních prvků do vícenásobných rámečků: na jedné stěně ve stejné výšce po 71 mm (vodorovně) nebo nad sebou po 71 mm (svisle) ---------- */
+function mergeAdjacentFrames(opts = {}) {
+  const PITCH = 0.071, TOL = 0.013; const removed = new Map(); let frames = 0, merged = 0;
+  const pool = opts.dry ? JSON.parse(JSON.stringify(state.elements)) : state.elements;   // zkušební běh pracuje na kopii, nic nemění
+  const byWall = {}; for (const e of pool) { if (!e.wallId || !FRAMEABLE.has(e.type) || (e.count || 1) > 1 || !isNum(e.u) || !isNum(e.h)) continue; (byWall[e.wallId] = byWall[e.wallId] || []).push(e); }
+  const slotEnd = e => (e.orient || 'h') === 'h' ? e.u + (slotCount(e) - 1) * PITCH : e.u;   // osa poslední pozice vodorovného rámečku
+  const slotBottom = e => (e.orient || 'h') === 'v' ? e.h - (slotCount(e) - 1) * PITCH : e.h;  // osa nejnižší pozice svislého rámečku
+  const absorb = (host, e, orient) => { if (slotCount(host) + slotCount(e) > MAX_SLOTS) return false;
+    host.extra = [...(host.extra || []), ...slotsOf(e).map(sl => { const x = { type: sl.type, label: sl.label || '' }; if (sl.controls && sl.controls.length) x.controls = sl.controls.slice(); if (sl.mod) x.mod = sl.mod; return x; })]; host.orient = orient;
+    if (e.note) host.note = [host.note, `č. ${e.no}: ${e.note}`].filter(Boolean).join(' · ').slice(0, LIM.maxNote); removed.set(e.id, host.id); merged++; return true; };
+  for (const wid in byWall) {
+    const els = byWall[wid];
+    // vodorovně: stejná výška, další prvek 71 mm vpravo od poslední pozice (jen prvky bez svislého rámečku)
+    for (const host of [...els].sort((a, b) => a.u - b.u)) { if (removed.has(host.id) || (host.orient || 'h') === 'v' && slotCount(host) > 1) continue; let n0 = slotCount(host);
+      for (;;) { const next = els.find(e => e !== host && !removed.has(e.id) && slotCount(e) === 1 && Math.abs(e.h - host.h) < 0.01 && Math.abs(e.u - (slotEnd(host) + PITCH)) < TOL); if (!next || !absorb(host, next, 'h')) break; }
+      if (slotCount(host) > n0) frames++; }
+    // svisle: stejná poloha, další prvek 71 mm pod nejnižší pozicí (jen prvky bez vodorovného rámečku)
+    for (const host of [...els].sort((a, b) => b.h - a.h)) { if (removed.has(host.id) || (host.orient || 'h') === 'h' && slotCount(host) > 1) continue; let n0 = slotCount(host);
+      for (;;) { const next = els.find(e => e !== host && !removed.has(e.id) && slotCount(e) === 1 && Math.abs(e.u - host.u) < 0.01 && Math.abs(e.h - (slotBottom(host) - PITCH)) < TOL); if (!next || !absorb(host, next, 'v')) break; }
+      if (slotCount(host) > n0) frames++; }
+  }
+  if (!merged) return { merged: 0, frames: 0 };
+  if (!opts.dry) { snapshot(); state.elements = state.elements.filter(e => !removed.has(e.id));
+    for (const e of state.elements) for (const sl of [e, ...(e.extra || [])]) if (Array.isArray(sl.controls)) sl.controls = [...new Set(sl.controls.map(id => removed.get(id) || id))].filter(id => id !== e.id);   // napojení na sloučený prvek → na jeho rámeček
+    pruneLinks('slouceni'); selId = null; commit(); render(); renderNav(); renderProps(); }
+  return { merged, frames };
+}
 function undo() { if (!undoStack.length) return; redoStack.push(JSON.stringify(state.elements)); state.elements = JSON.parse(undoStack.pop()); selId = null; commit(); }
 function redo() { if (!redoStack.length) return; undoStack.push(JSON.stringify(state.elements)); state.elements = JSON.parse(redoStack.pop()); selId = null; commit(); }
 function nextLabel() { return ''; }   // účel se nevyplňuje automaticky – prvek má stálé číslo
@@ -1495,8 +1522,12 @@ function renderSettings() {
   <h2>Standardní výšky nových prvků <span class="unit">mm od čisté podlahy ke středu</span></h2>
   ${SYMBOLS.map(x => `<div class="row"><span>${esc(x.name)}<span class="unit" style="margin-left:6px">(${x.ceiling ? 'strop' : x.h})</span></span>${x.ceiling ? '<span class="unit">podle místnosti</span>' : `<input type="number" data-sid="${x.id}" value="${defH(x.id)}" step="50" min="0" max="6000">`}</div>`).join('')}
   <p class="unit" style="margin:6px 0 0">Platí pro nově umístěné prvky; už umístěné se nemění. Stropní svítidla a bodovky dostávají výšku stropu místnosti (CEILING HEIGHT z reportu); u místnosti s neověřeným stropem se výška zadává ručně.</p>
+  <h2>Rámečky</h2>
+  <p style="margin:0 0 6px;color:var(--ink2)">Prvky na jedné stěně těsně vedle sebe (stejná výška, rozteč 71 mm) nebo nad sebou (stejná poloha, 71 mm) se sloučí do jednoho vícenásobného rámečku; první krabice (levá / horní) si nechá číslo, ostatní se stanou pozicemi 2–5. Jde vrátit přes Zpět.</p>
+  <div class="opt"><button id="sMerge">Sloučit sousední prvky do rámečků</button></div>
   <h2>Záloha a přenos</h2>
   <p style="margin:0;color:var(--ink2)">Použij tlačítka <b>Uložit projekt</b> / <b>Načíst projekt</b> v horní liště (soubor JSON nebo vložený text, s kontrolou a náhledem změn). Historie posledních 100 verzí je v <b>rev …</b> (Projekt).</p>`;
+  b.querySelector('#sMerge').onclick = () => { const r = mergeAdjacentFrames(); toast(r.merged ? `Sloučeno ${r.merged} ${r.merged < 5 ? 'prvky' : 'prvků'} do ${r.frames} ${r.frames === 1 ? 'rámečku' : 'rámečků'} · Ctrl+Z vrátí zpět` : 'Žádné prvky těsně vedle sebe nebo nad sebou (71 mm) nejsou'); };
   b.querySelector('#sDimStyle').value = dimStyle;
   b.querySelector('#sDimStyle').onchange = ev => { if (!DIM_STYLES.includes(ev.target.value)) return; dimStyle = ev.target.value; state.settings.dimStyle = dimStyle; commit(); };
   b.querySelector('#sMainDims').onchange = ev => { state.settings.mainPlanDims = !!ev.target.checked; commit(); };
@@ -1677,6 +1708,8 @@ const HELP_HTML = `
 <p>Stěny označené <b>schéma</b> report neobsahuje jako pohled; jsou odhadnuté z půdorysu (délka a výška z reportu, dveře orientačně). Takto jsou označené i v soupisu, CSV a PDF. Rozměry na nich ber jako orientační. Když report pro kus obrysu místnosti (delší než 25 cm) žádnou stěnu nemá, editor ji <b>doplní</b> sám – délka z půdorysu, výška podle místnosti, bez otvorů – aby šel zakreslit celý obvod místnosti. Dveře se kreslí podle zapsaného rozměru (ten je včetně obložky); otvor bez rozměru je průchod bez dveří.</p>
 <h2>Paleta prvků</h2>
 <p>Hlavní panel ukazuje nejčastější prvky, ostatní jsou pod <b>Další prvky</b>. Tlačítkem <b>Upravit</b> nad paletou si složení změníš: u každého prvku je ↓ (do Dalších) nebo ↑ (na hlavní panel), <b>Obnovit výchozí</b> vrátí původní sestavu. Volba se pamatuje v tomto prohlížeči a platí pro všechny zakázky.</p>
+<h2>Vícenásobné rámečky</h2>
+<p>Ve vlastnostech prvku nastav <b>Rámeček: 2–5 pozic</b> a směr; poloha a kóta patří první (levé / horní) krabici, další pozice jsou po 71 mm. Už zakreslené prvky, které stojí těsně vedle sebe nebo nad sebou, sloučí do rámečků tlačítko v <b>⚙ Nastavení → Rámečky</b>.</p>
 <h2>Zakreslení nového prvku</h2>
 <p>Klikni na prvek v paletě a potom do výkresu. <b>V pohledu stěny</b> se prvek umístí tam, kam klikneš, výška se přichytí na standard (zásuvka 300, vypínač 1150 …); s <kbd>Alt</kbd> zůstane přesná výška z kliknutí. <b>V půdorysu</b> klikni k stěně – prvek se přichytí na stěnu té místnosti, do které jsi klikl (u společných stěn rozhoduje strana). Stropní světla a bodovky se kladou volně dovnitř místnosti a dostanou <b>výšku stropu místnosti podle reportu</b>; pokud je výška stropu neověřená (⚠), editor si ji vyžádá ručně a prvek označí jako „ruční, neověřeno“. Pokládání ukončíš klávesou <kbd>Esc</kbd> nebo tlačítkem ↖ Výběr.</p>
 <h2>Úprava umístěného prvku</h2>

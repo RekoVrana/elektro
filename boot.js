@@ -53,12 +53,12 @@
     window.FONT_URL = 'font/DejaVuSans.ttf';
     window.ELEKTRO_ME = me;
 
-    const telo = await (await fetch('app.body.html?v=6', { cache: 'force-cache' })).text();
+    const telo = await (await fetch('app.body.html?v=7', { cache: 'force-cache' })).text();
     const root = el('appRoot'); root.innerHTML = telo; root.hidden = false;
     ukaz('gateLogin', false); ukaz('gateJobs', false);
     document.title = 'Elektro · ' + (project.title || job.title || job.jobId);
 
-    for (const src of ['lib/pdf-lib.min.js', 'lib/fontkit.umd.min.js', 'app.core.js?v=6']) {
+    for (const src of ['lib/pdf-lib.min.js', 'lib/fontkit.umd.min.js', 'app.core.js?v=7']) {
       await new Promise((hotovo, selhalo) => {
         const s = document.createElement('script');
         s.src = src; s.onload = hotovo; s.onerror = () => selhalo(new Error('nenačetlo se ' + src));
