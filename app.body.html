@@ -12,7 +12,8 @@
     <button id="btnProject" title="Revize, stav, autor, historie verzí">rev –</button>
     <button id="btnLoad" title="Načíst projekt ze souboru nebo z vloženého textu (s kontrolou a náhledem změn)">Načíst projekt</button>
     <button id="btnSave" title="Uložit celý projekt jako soubor JSON">Uložit projekt</button>
-    <button id="btnExport" class="primary">Export PDF</button>
+    <button id="btnZak" title="Čistý půdorys s očíslovanými prvky a tabulkou – k odsouhlasení zákazníkem">Plán pro zákazníka</button>
+    <button id="btnExport" class="primary" title="Podklad pro realizaci: původní report s překresem, pohledy na stěny, soupis">Export PDF</button>
   </header>
   <div class="banner" id="banner" hidden></div>
   <div class="main">
@@ -27,6 +28,7 @@
         <button id="zoomIn" title="Přiblížit">+</button>
         <button id="zoomFit" title="Celá stěna">⤢</button>
         <label class="chk" title="Zobrazit kóty"><input type="checkbox" id="chkDims" checked> kóty</label>
+        <label class="chk" title="Světle podložit obrázek z reportu magicplan – pro kontrolu, že stěny sedí"><input type="checkbox" id="chkRaster"> podklad magicplan</label>
       </div>
       <div class="inset" id="inset" hidden></div>
       <div class="empty-hint" id="emptyHint" hidden><b>Začni tady:</b> vyber prvek v paletě a klikni na stěnu ve výkresu.</div>
@@ -44,6 +46,7 @@
 <div class="modal" id="modalSettings"><div class="box" style="width:min(640px,94vw)"><header><h1>Nastavení</h1><div class="spacer"></div><button data-close>Zavřít</button></header><div class="body settings" id="settingsBody"></div></div></div>
 <div class="modal" id="modalHelp"><div class="box" style="width:min(760px,94vw)"><header><h1>Nápověda</h1><div class="spacer"></div><button data-close>Zavřít</button></header><div class="body help" id="helpBody"></div></div></div>
 <div class="modal" id="modalImport"><div class="box" style="width:min(760px,94vw)"><header><h1>Načíst projekt</h1><div class="spacer"></div><button data-close>Zavřít</button></header><div class="body pane" id="importBody"></div></div></div>
+<div class="modal" id="modalZak"><div class="box" style="width:min(1100px,96vw)"><header><h1>Plán pro zákazníka</h1><div class="spacer"></div><button data-close>Zavřít</button></header><div class="body pane" id="zakBody"></div></div></div>
 <div class="modal" id="modalExport"><div class="box" style="width:min(560px,94vw)"><header><h1>Export PDF</h1><div class="spacer"></div><button data-close>Zavřít</button></header><div class="body pane" id="exportBody"></div></div></div>
 <div class="modal" id="modalProject"><div class="box" style="width:min(680px,94vw)"><header><h1>Projekt · revize a historie</h1><div class="spacer"></div><button data-close>Zavřít</button></header><div class="body pane" id="projectBody"></div></div></div>
 <div class="modal" id="modalHeight"><div class="box" style="width:min(460px,94vw)"><header><h1>Výška stropního prvku</h1><div class="spacer"></div><button data-close>Zrušit</button></header><div class="body pane" id="heightBody"></div></div></div>

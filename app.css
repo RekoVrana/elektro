@@ -73,7 +73,7 @@ header{grid-row:1}
 .toolbar button.on{background:var(--sel-soft);border-color:var(--sel)}
 .toolbar .sep{width:1px;height:18px;background:var(--line);margin:0 2px}
 .toolbar .chk{display:flex;gap:5px;align-items:center;font-size:11.5px;margin-left:4px}
-.inset{position:absolute;right:10px;top:10px;width:96px;height:96px;background:#fff;border:1px solid var(--line2);border-radius:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);pointer-events:none}
+.inset{position:absolute;right:10px;top:10px;width:120px;height:120px;background:#fff;border:1px solid var(--line2);border-radius:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);pointer-events:none}
 .inset svg{width:100%;height:100%;display:block}
 .empty-hint{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 18px;font-size:14px;color:var(--ink2);box-shadow:0 4px 16px rgba(0,0,0,.08);pointer-events:none;max-width:80%;text-align:center}
 .hint{position:absolute;bottom:10px;left:10px;right:10px;display:flex;justify-content:space-between;gap:10px;pointer-events:none}
@@ -86,10 +86,12 @@ header{grid-row:1}
 .palette .cat{margin-bottom:8px}
 .palette .cat .catname{font-size:11px;color:var(--ink2);margin:4px 0 3px}
 .palette .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
-.pal{display:flex;align-items:center;gap:7px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);text-align:left;font-size:11.5px;line-height:1.15;min-height:36px}
-.pal svg{flex:none;width:26px;height:26px}
+.pal{display:flex;align-items:center;gap:7px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);text-align:left;font-size:11.5px;line-height:1.15;min-height:52px}
+.pal svg{flex:none;width:44px;height:44px}
 .pal.active{border-color:var(--acc);background:var(--acc-soft)}
 .palette .more{width:100%;margin-top:4px;font-size:11.5px;color:var(--ink2);background:none;border-style:dashed}
+.palette h3{display:flex;align-items:center;gap:8px}.palEditBtn{margin-left:auto;font-size:10.5px;padding:2px 7px}.palEditBtn.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.pal.editing{cursor:default}.palmove{display:block;margin-top:3px;font-size:10px;color:var(--sel);text-decoration:underline;cursor:pointer}
 .props{overflow:auto;padding:8px 10px;flex:1 1 auto}
 .props .row{display:grid;grid-template-columns:78px 1fr;gap:6px;align-items:center;margin-bottom:6px}
 .props .row label{font-size:11.5px;color:var(--ink2)}
@@ -151,7 +153,7 @@ pre.lic{white-space:pre-wrap;font-family:var(--mono);font-size:10.5px;background
   .side.tab-palette .props{display:none} .side.tab-palette .palette{max-height:none;flex:1;border:0}
   .side.tab-props .palette{display:none}
   .palette .grid{grid-template-columns:repeat(3,1fr)}
-  .pal{min-height:44px}
+  .pal{min-height:56px}
   header h1 small{display:none}
   header .status{max-width:26vw}
   header{gap:6px}
@@ -159,7 +161,7 @@ pre.lic{white-space:pre-wrap;font-family:var(--mono);font-size:10.5px;background
   .toolbar button{padding:6px 10px}
   .props .row{grid-template-columns:90px 1fr}
   input[type=text],input[type=number],select{padding:8px 8px;font-size:14px}
-  .inset{width:72px;height:72px}
+  .inset{width:88px;height:88px}
 }
 @media (max-width:760px){ .palette .grid{grid-template-columns:repeat(2,1fr)} header #btnHelp,header #btnRedo,header #btnSettings{display:none} header h1{display:none} }
 @media (prefers-reduced-motion: reduce){.toast{transition:none}.nav .room .arr{transition:none}}
